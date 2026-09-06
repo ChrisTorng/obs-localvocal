@@ -90,7 +90,8 @@ void enumerate_gpu_devices(transcription_filter_data *gf)
 
 	DLL_DIRECTORY_COOKIE backend_dll_dir = AddDllDirectory(path.wstring().c_str());
 	if (backend_dll_dir == nullptr) {
-		obs_log(LOG_WARNING, "Failed to add dynamic backend DLL directory %s (Win32 error %lu)",
+		obs_log(LOG_WARNING,
+			"Failed to add dynamic backend DLL directory %s (Win32 error %lu)",
 			path.string().c_str(), static_cast<unsigned long>(GetLastError()));
 	}
 #endif
@@ -100,12 +101,14 @@ void enumerate_gpu_devices(transcription_filter_data *gf)
 
 #ifdef _WIN32
 	if (backend_dll_dir != nullptr && !RemoveDllDirectory(backend_dll_dir)) {
-		obs_log(LOG_WARNING, "Failed to remove dynamic backend DLL directory %s (Win32 error %lu)",
+		obs_log(LOG_WARNING,
+			"Failed to remove dynamic backend DLL directory %s (Win32 error %lu)",
 			path.string().c_str(), static_cast<unsigned long>(GetLastError()));
 	}
 #endif
+#endif
 
-    // Enumerate backend devices to populate list
+	// Enumerate backend devices to populate list
 	auto backend_count = ggml_backend_dev_count();
 	size_t gpu_count = 0;
 	for (size_t i = 0; i < backend_count; i++) {
