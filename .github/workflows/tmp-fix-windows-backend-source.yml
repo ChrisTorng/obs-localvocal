@@ -36,7 +36,8 @@ jobs:
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew tap obsproject/tools
-          brew install obsproject/tools/clang-format@16
+          brew install zsh obsproject/tools/clang-format@16
+          export PATH="/home/linuxbrew/.linuxbrew/opt/clang-format@16/bin:$PATH"
           ./build-aux/run-clang-format
 
       - name: Validate and commit
