@@ -320,17 +320,16 @@ mod tests {
 
     #[test]
     fn waits_until_video_reaches_next_chunk_timestamp() {
-        let mut builder = WebvttMuxerBuilder::new(
-            Duration::from_millis(60),
-            2,
-            Duration::from_millis(40),
-        );
+        let mut builder =
+            WebvttMuxerBuilder::new(Duration::from_millis(60), 2, Duration::from_millis(40));
         assert!(builder
             .add_track(
                 false,
                 false,
                 false,
-                WebvttString::from_string("English".to_owned()).ok().unwrap(),
+                WebvttString::from_string("English".to_owned())
+                    .ok()
+                    .unwrap(),
                 WebvttString::from_string("en".to_owned()).ok().unwrap(),
                 None,
                 None,
