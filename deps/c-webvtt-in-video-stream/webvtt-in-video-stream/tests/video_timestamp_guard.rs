@@ -38,11 +38,8 @@ fn waits_for_video_timestamp_before_muxing_next_chunk() {
     // the next WebVTT chunk is at 500 ms while the preceding video frame is at 480 ms.
     // The look-ahead guard allows 480 ms through, so subtracting 500 ms from 480 ms
     // would underflow std::time::Duration and abort the process in release builds.
-    let mut builder = WebvttMuxerBuilder::new(
-        Duration::from_millis(60),
-        2,
-        Duration::from_millis(40),
-    );
+    let mut builder =
+        WebvttMuxerBuilder::new(Duration::from_millis(60), 2, Duration::from_millis(40));
 
     assert!(builder
         .add_track(
