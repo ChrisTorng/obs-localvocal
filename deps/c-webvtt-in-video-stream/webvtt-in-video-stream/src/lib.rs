@@ -254,6 +254,12 @@ impl WebvttMuxer {
         if next_chunk_video_timestamp > video_timestamp + self.video_frame_time * 2 {
             return Ok(add_header);
         }
+
+        let next_chunk_timestamp = *first_video_timestamp + next_chunk_webvtt_timestamp;
+        if video_timestamp < next_chunk_timestamp {
+            return Ok(add_header);
+        }
+
         let chunk_number = *next_chunk_number;
         // TODO: return an error type that allows skipping chunks if the writer fails?
         for (track_index, track) in tracks.iter_mut().enumerate() {
@@ -267,7 +273,7 @@ impl WebvttMuxer {
                 u8::try_from(track_index).unwrap(),
                 chunk_number,
                 0,
-                video_timestamp - (*first_video_timestamp + next_chunk_webvtt_timestamp),
+                video_timestamp - next_chunk_timestamp,
                 webvtt_payload,
             )?;
         }
