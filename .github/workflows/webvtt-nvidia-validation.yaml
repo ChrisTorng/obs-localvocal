@@ -1,0 +1,41 @@
+name: WebVTT Windows NVIDIA Validation
+
+on:
+  push:
+    branches:
+      - fix/webvtt-negative-video-offset
+
+jobs:
+  windows-nvidia:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Build Plugin
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x64
+          config: RelWithDebInfo
+          acceleration: nvidia
+
+      - name: Package Plugin
+        uses: ./.github/actions/package-plugin
+        with:
+          target: x64
+          config: RelWithDebInfo
+          package: false
+          acceleration: nvidia
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: obs-localvocal-0.6.2-windows-x64-nvidia-webvtt-fix
+          path: ${{ github.workspace }}/release/obs-localvocal-0.6.2-windows-x64*.*

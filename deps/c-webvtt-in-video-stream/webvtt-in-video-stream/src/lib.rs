@@ -254,6 +254,12 @@ impl WebvttMuxer {
         if next_chunk_video_timestamp > video_timestamp + self.video_frame_time * 2 {
             return Ok(add_header);
         }
+
+        let chunk_timestamp = *first_video_timestamp + next_chunk_webvtt_timestamp;
+        let Some(video_offset) = video_timestamp.checked_sub(chunk_timestamp) else {
+            return Ok(add_header);
+        };
+
         let chunk_number = *next_chunk_number;
         // TODO: return an error type that allows skipping chunks if the writer fails?
         for (track_index, track) in tracks.iter_mut().enumerate() {
@@ -267,11 +273,97 @@ impl WebvttMuxer {
                 u8::try_from(track_index).unwrap(),
                 chunk_number,
                 0,
-                video_timestamp - (*first_video_timestamp + next_chunk_webvtt_timestamp),
+                video_offset,
                 webvtt_payload,
             )?;
         }
         *next_chunk_number += 1;
         Ok(true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+    use video_bytestream_tools::webvtt::{WebvttTrack, WebvttWrite};
+
+    #[derive(Default)]
+    struct TestWriter {
+        headers: usize,
+        payload_offsets: Vec<Duration>,
+    }
+
+    impl WebvttWrite for TestWriter {
+        fn write_webvtt_header(
+            &mut self,
+            _max_latency_to_video: Duration,
+            _send_frequency_hz: u8,
+            _subtitle_tracks: &[WebvttTrack],
+        ) -> io::Result<()> {
+            self.headers += 1;
+            Ok(())
+        }
+
+        fn write_webvtt_payload(
+            &mut self,
+            _track_index: u8,
+            _chunk_number: u64,
+            _chunk_version: u8,
+            video_offset: Duration,
+            _webvtt_payload: &str,
+        ) -> io::Result<()> {
+            self.payload_offsets.push(video_offset);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn waits_until_video_reaches_next_chunk_timestamp() {
+        let mut builder =
+            WebvttMuxerBuilder::new(Duration::from_millis(60), 2, Duration::from_millis(40));
+        assert!(builder
+            .add_track(
+                false,
+                false,
+                false,
+                WebvttString::from_string("English".to_owned())
+                    .ok()
+                    .unwrap(),
+                WebvttString::from_string("en".to_owned()).ok().unwrap(),
+                None,
+                None,
+            )
+            .is_ok());
+        let muxer = builder.create_muxer();
+        let first_timestamp = Duration::from_secs(1);
+        let mut writer = TestWriter::default();
+
+        assert!(muxer
+            .try_mux_into_bytestream(first_timestamp, true, &mut writer)
+            .unwrap());
+        assert_eq!(writer.headers, 1);
+        assert_eq!(writer.payload_offsets, vec![Duration::ZERO]);
+
+        assert!(!muxer
+            .try_mux_into_bytestream(
+                first_timestamp + Duration::from_millis(480),
+                false,
+                &mut writer,
+            )
+            .unwrap());
+        assert_eq!(writer.payload_offsets, vec![Duration::ZERO]);
+
+        assert!(muxer
+            .try_mux_into_bytestream(
+                first_timestamp + Duration::from_millis(520),
+                false,
+                &mut writer,
+            )
+            .unwrap());
+        assert_eq!(
+            writer.payload_offsets,
+            vec![Duration::ZERO, Duration::from_millis(20)]
+        );
     }
 }
